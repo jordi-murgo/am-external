@@ -115,10 +115,53 @@ if (!("webauthn.get").equals(map.get("type"))) {
 - **Payee Information:** Validar información del comerciante (payeeName, payeeOrigin)
 - **Payment Amount:** Validar monto y moneda de la transacción
 
-#### 2.2 Validación de Cross-Origin
-- SPC permite autenticación cross-origin (el comerciante puede autenticar en nombre del banco)
-- Requiere validación de `payeeOrigin` vs origen actual
-- Implementar lista de orígenes permitidos para cada Relying Party
+#### 2.2 Análisis de Validación de Origin Actual vs Requisitos SPC
+
+**Estado Actual de la Validación de Origin en el Código:**
+
+1. **Configuración de Orígenes (`WebAuthnAuthenticationNode.Config.origins()`):**
+   ```java
+   @Attribute(order = 15)
+   default Set<String> origins() {
+       return Collections.emptySet();
+   }
+   ```
+   - Permite configurar conjunto estático de orígenes válidos
+   - Usado tanto en `WebAuthnAuthenticationNode` como `WebAuthnRegistrationNode`
+
+2. **Extracción de Dominio (`AbstractWebAuthnNode.getDomain()`):**
+   ```java
+   String getDomain(Optional<String> configRpId, List<String> originHeader, String serverUrl)
+   ```
+   - Usa header HTTP `"origin"` como fallback si no hay configRpId
+   - Extrae host de la URL del origen para generar rpId
+
+3. **Validación Centralizada (`FlowUtilities.isOriginValid()`):**
+   ```java
+   // Compara scheme, host y port exactamente
+   deviceOrigin.getScheme().equals(amOrigin.getScheme())
+   && deviceOrigin.getHost().equals(amOrigin.getHost()) 
+   && portsMatch(deviceOrigin, amOrigin)
+   ```
+   - También valida contra clientes OAuth2 registrados
+   - Usado en `AuthenticationFlow.accept()` y `RegisterFlow.accept()`
+
+4. **Validación en Flujos:**
+   ```java
+   String origin = Optional.ofNullable(map.get("origin")).map(Object::toString).orElse(null);
+   if (origin == null || !flowUtilities.isOriginValid(realm, origins, origin)) {
+       logger.warn("origin in response not valid for the actual origin. Origin provided was {} but origins allowed are: {}", origin, origins);
+       return false;
+   }
+   ```
+
+**Limitaciones para SPC:**
+
+- **Solo valida `origin` simple:** No maneja `crossOrigin`, `topOrigin`, `payeeOrigin`
+- **Validación rígida same-origin:** No contempla flujos cross-origin legítimos de SPC
+- **Configuración estática:** No permite orígenes dinámicos según contexto de pago
+- **Falta lógica condicional:** No diferencia entre WebAuthn estándar (`webauthn.get`) y SPC (`payment.get`)
+- **No hay soporte para página pivot:** Comunicación cross-origin necesaria en SPC
 
 #### 2.3 Browser-Bound Keys
 - **Propósito:** Proporcionar evidencia criptográfica de posesión del dispositivo
