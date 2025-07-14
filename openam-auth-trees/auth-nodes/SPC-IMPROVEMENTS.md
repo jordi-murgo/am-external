@@ -266,38 +266,47 @@ sequenceDiagram
     participant Navegador as Navegador / App
     participant Comercio as Comercio
     participant Mastercard as Mastercard
-    participant Banco as Banco Emisor (Issuer) [No visible directamente]
+    participant Banco as Banco Emisor (Back-channel)
 
-    Comercio->>Mastercard: Solicita inicio autenticación SPC (transacción)
-    Mastercard->>Comercio: Devuelve RP ID banco, challenge, datos SPC
-    Comercio->>Usuario: Llama WebAuthn payment.get con RP ID y challenge
-    Usuario->>Navegador: Ejecuta autenticación passkey vinculada al RP ID banco
-    Navegador->>Usuario: Solicita validación biométrica / PIN
-    Usuario->>Navegador: Respuesta firmada (assertion)
-    Navegador->>Comercio: Devuelve respuesta autenticada
-    Comercio->>Mastercard: Envía respuesta autenticada
-    Mastercard->>Banco: Valida respuesta, verifica firma y datos SPC
-    Banco->>Mastercard: Confirmación autenticación exitosa
+    Note over Banco,Mastercard: Fase previa: Banco registra credenciales del usuario
+    Comercio->>Mastercard: Solicita credenciales para usuario (back-channel)
+    Mastercard->>Comercio: Devuelve lista de credenciales y datos SPC
+    
+    Note over Comercio,Usuario: Ceremonia de autenticación SPC (sin participación directa del banco)
+    Comercio->>Navegador: Llama SPC API con credenciales
+    Navegador->>Usuario: Muestra detalles de transacción y solicita consentimiento
+    Usuario->>Navegador: Acepta y realiza autenticación biométrica
+    Navegador->>Navegador: Realiza ceremonia WebAuthn con datos de pago
+    Navegador->>Comercio: Devuelve assertion con datos de pago firmados
+    
+    Note over Comercio,Banco: Verificación posterior (back-channel)
+    Comercio->>Mastercard: Envía assertion para verificación (back-channel)
+    Mastercard->>Banco: Reenvía assertion al banco emisor (back-channel)
+    Banco->>Banco: Verifica firma y datos de pago
+    Banco->>Mastercard: Confirmación de autorización
     Mastercard->>Comercio: Resultado positivo, autorización pago
 ```
 
-#### Puntos Clave del Flujo de Autenticación:
+#### Puntos Clave del Flujo de Autenticación SPC:
 
-1. **Inicio en el Comercio**: El flujo comienza en el sitio del comercio, no en el del banco.
-2. **Orquestación de MasterCard**: MasterCard actúa como orquestador, proporcionando al comercio los datos necesarios para iniciar la autenticación WebAuthn (RP ID del banco, challenge, etc.).
-3. **Llamada `payment.get`**: El comercio invoca `navigator.credentials.get()` con la opción `payment`, que es la clave de SPC.
-4. **RP ID del Banco**: La autenticación se realiza contra el `rpId` del banco emisor, aunque la llamada se origine en el dominio del comercio (flujo cross-origin).
-5. **Validación por el Banco**: La aserción final es validada por el banco emisor, que es el único que posee la clave pública del usuario.
+1. **Provisión de Credenciales**: El comercio obtiene las credenciales del usuario desde Mastercard via back-channel.
+2. **Ceremonia SPC**: El comercio llama la SPC API directamente en el navegador, sin participación directa del banco.
+3. **Autenticación Local**: El navegador muestra detalles de la transacción y el usuario se autentica localmente.
+4. **Firma con Datos de Pago**: La ceremonia WebAuthn incluye datos de pago en la assertion firmada.
+5. **Verificación Back-Channel**: El comercio envía la assertion al banco a través de Mastercard para verificación.
+6. **Validación Final**: El banco verifica la firma y los datos de pago, y decide sobre la autorización.
 
 #### Integración con WebAuthnAuthenticationNode:
 
-El `WebAuthnAuthenticationNode` de ForgeRock AM se sitúa en el rol del "Banco Emisor (Issuer)". Cuando MasterCard (o el comercio) presenta la aserción al banco para su validación, es el árbol de autenticación de ForgeRock el que procesa esta solicitud. El nodo debe:
+**IMPORTANTE**: En el flujo SPC verdadero, el `WebAuthnAuthenticationNode` **NO participa directamente** en la ceremonia de autenticación. El banco solo recibe assertions vía back-channel para verificación posterior.
 
-1. **Recibir la aserción** y los datos del cliente.
-2. **Verificar la firma** contra la clave pública almacenada para ese usuario.
-3. **Validar el `challenge`** para prevenir ataques de repetición.
-4. **Validar los orígenes** (`origin` y `topOrigin`) para asegurar que la solicitud proviene de un comercio autorizado.
-5. **Exportar los datos de autenticación** al `transientState` como se detalla en la propuesta, para que puedan ser devueltos a MasterCard y, finalmente, al comercio.
+En el contexto de ForgeRock AM, el banco (Account Provider) actúa como:
+
+1. **Proveedor de Credenciales** (durante el registro inicial)
+2. **Verificador de Assertions** (vía back-channel después de la ceremonia SPC)
+3. **Autoridad de Pago** (toma la decisión final de autorizar/rechazar)
+
+**Nota**: Lo que hemos implementado hasta ahora es un **flujo NO-SPC** donde el banco sí participa directamente en la autenticación, similar al flujo tradicional WebAuthn pero con capacidad para exportar datos de assertion.
 
 ## Resumen de Cambios Requeridos por Flujo
 
