@@ -103,8 +103,11 @@ public class AuthenticationFlow {
         }
 
         // 7.2.7
-        if (!("webauthn.get").equals(map.get("type"))) {
-            logger.warn("client data type was incorrect, expecting webauth.get");
+        // Add SPC Validation
+        String clientDataType = (String) map.get("type");
+        if (!("webauthn.get").equals(clientDataType) && !("payment.get").equals(clientDataType)) {
+            logger.warn("Client data type was incorrect. Expected 'webauthn.get' or 'payment.get', but got: {}",
+                    clientDataType);
             return false;
         }
 

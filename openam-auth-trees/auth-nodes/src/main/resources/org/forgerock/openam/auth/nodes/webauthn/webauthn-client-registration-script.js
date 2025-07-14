@@ -36,7 +36,8 @@ var publicKey = {
     attestation: "{attestationPreference}",
     timeout: {timeout},
     excludeCredentials: [{excludeCredentials}],
-    authenticatorSelection: {authenticatorSelection}
+    authenticatorSelection: {authenticatorSelection},
+    {spcExtensions}
 };
 
 navigator.credentials.create({publicKey: publicKey})

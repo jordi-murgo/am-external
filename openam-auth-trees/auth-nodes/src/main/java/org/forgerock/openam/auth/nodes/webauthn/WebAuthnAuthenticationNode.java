@@ -26,6 +26,7 @@ import static org.forgerock.openam.auth.nodes.webauthn.WebAuthnDomException.ERRO
 import static org.forgerock.openam.auth.nodes.webauthn.WebAuthnDomException.WEB_AUTHENTICATION_DOM_EXCEPTION;
 
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -77,6 +78,11 @@ import com.sun.identity.idm.AMIdentity;
         configClass = WebAuthnAuthenticationNode.Config.class,
         tags = {"mfa", "multi-factor authentication"})
 public class WebAuthnAuthenticationNode extends AbstractWebAuthnNode {
+
+    private static final String WEBAUTHN_CLIENT_DATA_JSON = "webAuthnClientDataJSON";
+    private static final String WEBAUTHN_AUTHENTICATOR_DATA = "webAuthnAuthenticatorData";
+    private static final String WEBAUTHN_SIGNATURE = "webAuthnSignature";
+    private static final String WEBAUTHN_CREDENTIAL_ID = "webAuthnCredentialId";
 
     private static final String BUNDLE = WebAuthnAuthenticationNode.class.getName();
     private static final String AUTH_SCRIPT = RESOURCE_LOCATION + "webauthn-client-auth-script.js";
@@ -306,7 +312,14 @@ public class WebAuthnAuthenticationNode extends AbstractWebAuthnNode {
                     getPermittedOrigins(config.origins(), context), config.userVerificationRequirement())) {
                 logger.debug("returning with success outcome");
 
-                Action.ActionBuilder responseAction = Action.goTo(SUCCESS_OUTCOME_ID);
+                // Export assertion data to transient state for downstream nodes
+                NodeState transientState = context.getTransientState();
+                transientState.put(WEBAUTHN_CLIENT_DATA_JSON, response.getClientData());
+                transientState.put(WEBAUTHN_AUTHENTICATOR_DATA, Base64.getEncoder().encodeToString(authData.getAuthenticatorData()));
+                transientState.put(WEBAUTHN_SIGNATURE, Base64.getEncoder().encodeToString(response.getSignature()));
+                transientState.put(WEBAUTHN_CREDENTIAL_ID, response.getCredentialId());
+
+                Action.ActionBuilder responseAction = Action.goTo(SUCCESS_OUTCOME_ID).replaceTransientState(transientState);
 
                 //we are responsible for putting the username into the shared state so the appropriate user logs in
                 if (config.requiresResidentKey()) {

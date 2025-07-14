@@ -300,6 +300,16 @@ public class WebAuthnRegistrationNode extends AbstractWebAuthnNode {
             return 0;
         }
 
+        /**
+         * Enable the 'payment' extension for Secure Payment Confirmation (SPC) registration.
+         *
+         * @return {@literal true} if the payment extension should be enabled.
+         */
+        @Attribute(order = 160)
+        default boolean enablePaymentExtension() {
+            return false;
+        }
+
     }
 
     /**
@@ -340,6 +350,14 @@ public class WebAuthnRegistrationNode extends AbstractWebAuthnNode {
         String username = context.sharedState.get(USERNAME).asString();
         byte[] challengeBytes = getChallenge(context);
         String registrationScript = clientScriptUtilities.getScriptAsString(REGISTRATION_SCRIPT);
+
+        // Conditionally add the SPC payment extension to the script
+        if (config.enablePaymentExtension()) {
+            String spcExtension = ", \"extensions\": { \"payment\": { \"isPayment\": true } }";
+            registrationScript = registrationScript.replace("{spcExtensions}", spcExtension);
+        } else {
+            registrationScript = registrationScript.replace("{spcExtensions}", "");
+        }
 
         Optional<String> result = context.getCallback(HiddenValueCallback.class)
                 .map(HiddenValueCallback::getValue)
