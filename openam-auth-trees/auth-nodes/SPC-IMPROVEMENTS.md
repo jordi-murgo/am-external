@@ -343,32 +343,38 @@ Este flujo requiere habilitar las extensiones de pago de WebAuthn para cumplir c
         1. **Modificar `WebAuthnAuthenticationNode.java`**: Añadir lógica para procesar y validar los campos `topOrigin` y `parentOrigin` que vienen en el `clientDataJSON`.
         2. **Soportar `payment.get`**: Asegurar que el servidor pueda manejar `"type": "payment.get"` en el `clientDataJSON`, además del estándar `webauthn.get`.
 
-## Plan de Implementación por Fases (Revisado)
+## Plan de Implementación por Fases (Alineado con el Contexto de Santander)
 
-Tras analizar los requisitos de la integración con MasterCard, se redefine el plan para priorizar la validación del flujo SPC desde la fase inicial.
+Tras una revisión detallada de la especificación W3C y los requisitos de la integración con Mastercard, se ha redefinido el plan para alinear con el enfoque por fases del proyecto.
 
-### Fase 1: PoC (Proof of Concept) - Flujo SPC Mínimo Viable
+### Fase 1: PoC - Flujo NO-SPC + SPC con aserción Delegada
 
-El objetivo es demostrar la capacidad de crear una passkey compatible con SPC y, al mismo tiempo, asegurar un flujo funcional de extremo a extremo para la PoC.
+El objetivo de esta fase es validar los componentes técnicos clave y entregar un flujo funcional para la PoC con Mastercard, aunque no soportemos la totalidad de SPC.
 
-**Alcance:**
-1.  **Registro de Passkey SPC (Prioridad Máxima):** `[COMPLETADO]`
-    -   Se ha modificado `WebAuthnRegistrationNode.java` para que sea capaz de **insertar la extensión `payment`** en el script de cliente (`{spcExtensions}`). Esto permite crear una credencial que puede ser utilizada en el flujo SPC de MasterCard.
-2.  **Autenticación NO-SPC (Tarea de Soporte):** `[COMPLETADO]`
-    -   Se ha modificado `WebAuthnAuthenticationNode.java` para **exportar los datos de la aserción** (`clientDataJSON`, `authenticatorData`, `signature`, `credentialId`) al `transientState`.
-3.  **Script de Redirección (Siguiente Paso):** `[PENDIENTE]`
-    -   Implementar un **nodo de script** que consuma los datos del `transientState` y construya la URL de redirección final hacia el partner (Mastercard) para completar el flujo de autenticación NO-SPC.
+**¿Qué se debe implementar?**
+- Implementar un **flujo de autenticación WebAuthn tradicional (NO-SPC)**, donde el banco **sí participa directamente** en la autenticación.
+- **`WebAuthnRegistrationNode`**: Modificar para añadir la extensión `payment` al registrar una credencial. Esto asegurará que la passkey creada sea **compatible con SPC**.
+- **Script de registro**: Realizar la llamada a Mastercard para informar de la creación de la passkey.
+- **`WebAuthnAuthenticationNode`**: Modificar para **exportar los datos de la aserción** (`clientDataJSON`, `signature`, etc.) al `transientState` de ForgeRock, y permitir su uso en scripts.
+- **Callback Redirect**: Tras la verificación exitosa de la passkey por parte del banco emisor, implementar un **redirect callback del navegador hacia la dirección indicada por Mastercard** con la prueba de atestación y los datos necesarios para continuar el flujo de pago.
 
-Este enfoque permite mitigar riesgos, validando la pieza más importante (registro SPC) de forma temprana.
+**Razón de este enfoque:**
+- Permitirá a Mastercard recibir las passkeys del banco emisor cuando se crean, para que puedan ser utilizadas en el flujo SPC de Mastercard.
+- Permitirá a Mastercard recibir los datos de la aserción y la prueba de atestación necesarios para completar su flujo NO-SPC, donde ellos orquestan la redirección final.
+- El callback redirect asegura que Mastercard puede continuar con su flujo de autorización de pago tras la autenticación del banco.
+- Validará que nuestra plataforma puede manejar los artefactos criptográficos de WebAuthn en un contexto de pago.
+- Sentará las bases técnicas para la Fase 2 sin la complejidad de desarrollar el flujo SPC completo desde el inicio.
 
-### Fase 2: Producción - Soporte SPC Genérico y Completo
+### Fase 2: Producción - Soporte SPC Genérico y Completo (Futuro)
 
-El objetivo es evolucionar la plataforma para que ofrezca un soporte nativo y robusto para SPC, independiente de un único partner.
+El objetivo de esta fase es evolucionar la plataforma para que soporte el **flujo SPC verdadero**, alineado con la especificación del W3C.
 
-**Alcance:**
-1.  **Autenticación SPC Genérica:**
-    -   Mejorar `WebAuthnAuthenticationNode.java` para que pueda procesar y validar de forma nativa una aserción de SPC. Esto incluye:
-        -   Validar `topOrigin` y `parentOrigin` para flujos cross-origin.
-        -   Soportar el tipo `payment.get` en el `clientDataJSON`.
+**Trabajo Requerido:**
+1.  **Desarrollo de APIs Back-Channel**: Crear los endpoints necesarios para que Mastercard (o cualquier otro partner) pueda:
+    *   **Solicitar credenciales de un usuario**: Retornará la información necesaria (`rpId`, `credenciales`, `challenge`, etc.) para poder invocar la firma SPC en el navegador sin salir de la web del merchant.
+    *   **Enviar una aserción para su verificación**: Validará el `challenge` emitido y que la firma es correcta y corresponda al usuario autenticado.
+2.  **Mejoras en Componentes Existentes para SPC**:
+    *   **`WebAuthnAuthenticationNode`**: Verificar y asegurar que tiene en cuenta `parentOrigin` y `topOrigin` en la validación de assertions SPC.
+    *   **`AuthenticationFlow`**: Confirmar que acepta `payment.get` en el `type` del `clientDataJSON` para procesar correctamente solicitudes SPC.
 
-Este plan revisado alinea mejor el esfuerzo de la PoC con los objetivos estratégicos a largo plazo.
+Este plan alinea el esfuerzo de la PoC con los objetivos estratégicos a largo plazo, manteniendo un enfoque pragmático que permite entregar valor inmediato mientras se construyen las bases para el soporte SPC completo.
