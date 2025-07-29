@@ -36,7 +36,7 @@ var publicKey = {
     attestation: "{attestationPreference}",
     timeout: {timeout},
     excludeCredentials: [{excludeCredentials}],
-    authenticatorSelection: {authenticatorSelection},
+    authenticatorSelection: {authenticatorSelection}
     {spcExtensions}
 };
 

@@ -164,7 +164,7 @@ public class WebAuthnAuthenticationNodeTest {
         // Given
         JsonValue sharedState = json(object(field(USERNAME, "bob"), field(REALM, "root")));
         JsonValue transientState = json(object());
-        AuthData authData = mock(AuthData.class);
+        AuthData authData = new AuthData(new byte[]{1, 2, 3, 4}, null, 0, null, new byte[]{5, 6, 7, 8});
 
         HiddenValueCallback hvc = mock(HiddenValueCallback.class);
         ClientAuthenticationScriptResponse response = mock(ClientAuthenticationScriptResponse.class);

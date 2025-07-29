@@ -313,9 +313,11 @@ public class WebAuthnAuthenticationNode extends AbstractWebAuthnNode {
                 logger.debug("returning with success outcome");
 
                 // Export assertion data to transient state for downstream nodes
-                NodeState transientState = context.getTransientState();
+                JsonValue transientState = context.transientState.copy();
                 transientState.put(WEBAUTHN_CLIENT_DATA_JSON, response.getClientData());
-                transientState.put(WEBAUTHN_AUTHENTICATOR_DATA, Base64.getEncoder().encodeToString(authData.getAuthenticatorData()));
+                String authenticatorData = authData.rawAuthenticatorData != null ? 
+                    Base64.getEncoder().encodeToString(authData.rawAuthenticatorData) : "";
+                transientState.put(WEBAUTHN_AUTHENTICATOR_DATA, authenticatorData);
                 transientState.put(WEBAUTHN_SIGNATURE, Base64.getEncoder().encodeToString(response.getSignature()));
                 transientState.put(WEBAUTHN_CREDENTIAL_ID, response.getCredentialId());
 
