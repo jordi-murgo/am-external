@@ -116,6 +116,32 @@ abstract class AbstractWebAuthnNode extends AbstractDecisionNode {
     static final String WEB_AUTHN_ASSERTION_INFO = "webauthnAssertionInfo";
 
     /**
+     * Key for information about the assertion data for trees to consume.
+     * Contains the full assertion object returned by the authenticator.
+     */
+    static final String WEB_AUTHN_ASSERTION_DATA = "webauthnAssertionData";
+    /**
+     * Key for the JSON-encoded client data returned by the authenticator.
+     */
+    static final String ASSERTION_DATA_CLIENT_DATA_JSON = "clientDataJSON";
+    /**
+     * Key for the authenticator data returned by the authenticator.
+     */
+    static final String ASSERTION_DATA_AUTHENTICATOR_DATA = "authenticatorData";
+    /**
+     * Key for the signature returned by the authenticator.
+     */
+    static final String ASSERTION_DATA_SIGNATURE = "signature";
+    /**
+     * Key for the user handle returned by the authenticator.
+     */
+    static final String ASSERTION_DATA_USER_HANDLE = "userHandle";
+    /**
+     * Key for the credential ID used in the assertion.
+     */
+    static final String ASSERTION_DATA_CREDENTIAL_ID = "id";
+
+    /**
      * Key for the authenticator attachment field.
      */
     static final String AUTHENTICATOR_ATTACHMENT = "authenticatorAttachment";

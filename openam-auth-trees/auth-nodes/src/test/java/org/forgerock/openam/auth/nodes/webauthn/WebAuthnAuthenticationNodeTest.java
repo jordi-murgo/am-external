@@ -41,6 +41,12 @@ import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.USER
 import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.WEB_AUTHN_ASSERTION_INFO;
 import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.WEB_AUTHN_DEVICE_NAME;
 import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.WEB_AUTHN_DEVICE_UUID;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.WEB_AUTHN_ASSERTION_DATA;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_CREDENTIAL_ID;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_CLIENT_DATA_JSON;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_AUTHENTICATOR_DATA;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_SIGNATURE;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_USER_HANDLE;
 import static org.forgerock.openam.auth.nodes.webauthn.WebAuthnAuthenticationNode.NO_DEVICE_OUTCOME_ID;
 import static org.forgerock.openam.auth.nodes.webauthn.WebAuthnAuthenticationNode.RECOVERY_CODE_OUTCOME_ID;
 import static org.forgerock.openam.auth.nodes.webauthn.WebAuthnAuthenticationNode.SIGN_COUNT_MISMATCH_OUTCOME_ID;
@@ -211,6 +217,15 @@ public class WebAuthnAuthenticationNodeTest {
         assertThat(sharedState.get(WEB_AUTHN_DEVICE_UUID).asString()).isNotNull();
         assertThat(sharedState.get(WEB_AUTHN_DEVICE_NAME).asString()).isEqualTo("daedalus");
         assertThat(transientState.isDefined(WEB_AUTHN_ASSERTION_INFO)).isTrue();
+
+        // MasterCard PoC
+        assertThat(transientState.isDefined(WEB_AUTHN_ASSERTION_DATA)).isTrue();
+        var assertionData = transientState.get(WEB_AUTHN_ASSERTION_DATA).asMap();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_CREDENTIAL_ID)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_CLIENT_DATA_JSON)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_AUTHENTICATOR_DATA)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_SIGNATURE)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_USER_HANDLE)).isTrue();
     }
 
     @Test

@@ -376,6 +376,16 @@ public class WebAuthnAuthenticationNode extends AbstractWebAuthnNode {
 
                 nodeState.putTransient(WEB_AUTHN_ASSERTION_INFO, webAuthnObjectInfo);
 
+                // MasterCard PoC: Create assertionData
+                JsonValue assertionData = json(object(
+                        field(ASSERTION_DATA_CREDENTIAL_ID, credentialId),
+                        field(ASSERTION_DATA_CLIENT_DATA_JSON, response.getClientData()),
+                        field(ASSERTION_DATA_AUTHENTICATOR_DATA, response.getAuthenticatorData()),
+                        field(ASSERTION_DATA_SIGNATURE, response.getSignature()),
+                        field(ASSERTION_DATA_USER_HANDLE, response.getUserHandle())
+                ));
+                nodeState.putTransient(WEB_AUTHN_ASSERTION_DATA, assertionData);
+
                 return actionBuilder.withUniversalId(identity.map(AMIdentity::getUniversalId)).build();
             } else {
                 logger.debug("returning with failure outcome");
