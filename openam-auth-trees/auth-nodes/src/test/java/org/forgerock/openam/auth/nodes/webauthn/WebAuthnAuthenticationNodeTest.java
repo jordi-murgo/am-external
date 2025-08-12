@@ -24,6 +24,14 @@ import static org.forgerock.json.JsonValue.json;
 import static org.forgerock.json.JsonValue.object;
 import static org.forgerock.openam.auth.node.api.SharedStateConstants.REALM;
 import static org.forgerock.openam.auth.node.api.SharedStateConstants.USERNAME;
+
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.WEB_AUTHN_ASSERTION_DATA;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_CREDENTIAL_ID;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_CLIENT_DATA_JSON;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_AUTHENTICATOR_DATA;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_SIGNATURE;
+import static org.forgerock.openam.auth.nodes.webauthn.AbstractWebAuthnNode.ASSERTION_DATA_USER_HANDLE;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -188,6 +196,16 @@ public class WebAuthnAuthenticationNodeTest {
         IdentifiedIdentity idid = result.identifiedIdentity.get();
         assertThat(idid.getUsername()).isEqualTo("bob");
         assertThat(idid.getIdentityType()).isEqualTo(IdType.USER);
+
+
+        // MasterCard PoC
+        assertThat(transientState.isDefined(WEB_AUTHN_ASSERTION_DATA)).isTrue();
+        var assertionData = transientState.get(WEB_AUTHN_ASSERTION_DATA).asMap();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_CREDENTIAL_ID)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_CLIENT_DATA_JSON)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_AUTHENTICATOR_DATA)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_SIGNATURE)).isTrue();
+        assertThat(assertionData.containsKey(ASSERTION_DATA_USER_HANDLE)).isTrue();
     }
 
     @Test
